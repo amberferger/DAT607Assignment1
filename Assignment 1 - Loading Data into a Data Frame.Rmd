@@ -1,0 +1,107 @@
+---
+title: "Assignment 1 - Loading Data into a Data Frame"
+author: "Amber Ferger"
+date: "8/30/2019"
+output: html_document
+---
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load Libraries
+
+```{r libraries, echo = FALSE}
+library(RCurl)
+library(plyr)
+```
+
+## Load Dataset
+
+From the Data Dictionary: This data set includes descriptions of hypothetical samples corresponding to 23 species of gilled mushrooms in the Agaricus and Lepiota Family (pp. 500-525). Each species is identified as definitely edible, definitely poisonous, or of unknown edibility and not recommended. This latter class was combined with the poisonous one. The Guide clearly states that there is no simple rule for determining the edibility of a mushroom; no rule like ``leaflets three, let it be'' for Poisonous Oak and Ivy.
+
+
+```{r loadData}
+
+mushroomURL <- "https://archive.ics.uci.edu/ml/machine-learning-databases/mushroom/agaricus-lepiota.data"
+
+# read in the mushroom data as a csv with no headers and comma separator
+mushroomData <- read.csv(mushroomURL, header = FALSE, sep = ",")
+mushroomData <- as.data.frame(mushroomData)
+
+
+```
+
+
+## Initial Exploration
+
+### Preliminary Look 
+Now that the data is loaded, let's take a preliminary look at it.
+
+``` {r explore data}
+
+ncol(mushroomData)
+nrow(mushroomData)
+head(mushroomData)
+```
+The number of columns in the dataset is 23, but the website highlights 22. A quick check of the values in column 1 indicates 2 possibilities - e or p. 
+
+``` {r unique}
+unique(mushroomData$V1)
+```
+
+
+Since the goal of this project was to determine whether a particular mushroom is likely to be edible, my initial guess is that this first column is the classification. Perhaps p = poisonous and e = edible? A deeper look into the data dictionary confirms that column 1 is indeed a classification!
+
+## Data Cleanup
+
+Now that we have a very high-level overview of the data, let's do a little bit of cleaning.
+
+### Redefine Column Names
+
+Since we don't have any column names defined, let's create some now. We'll use the information provided by UCI:
+
+``` {r defineColumns}
+
+names <- c('CLASSIFICATION','CAP_SHAPE','CAP_SURFACE','CAP_COLOR','BRUISES','ODOR','GILL_ATTACHMENT','GILL_SPACING','GILL_SIZE','GILL_COLOR','STALK_SHAPE', 'STALK_ROOT','STALK_SURFACE_ABOVE_RING','STALK_SURFACE_BELOW_RING','STALK_COLOR_ABOVE_RING','STALK_COLOR_BELOW_RING','VEIL_TYPE','VEIL_COLOR','RING_NUMBER','RING_TYPE','SPORE_PRINT_COLOR','POPULATION','HABITAT')
+
+colnames(mushroomData) <- names
+
+```
+
+### Subset Data
+
+I love data (the more the better!), but since the goal of this project is to create a subset of the original data set, let's limit our pull to only color characteristics & the classification.
+
+``` {r colorColumns}
+
+mushroomDataSubset <- mushroomData[,c(grep("CLASSIFICATION",names(mushroomData)),grep("COLOR",names(mushroomData)))]
+
+head(mushroomDataSubset)
+
+```
+
+Looks good! Let's take a look at the data in a little more detail. Are there certain colors that seem to be more prominent than others?
+
+``` {r summaryData}
+summary(mushroomDataSubset)
+```
+
+### Replace Abbreviations
+The summary is great, but the abbreviations aren't super intuitive. Is g green or gray? Is b brown or blue? Let's replace these values so we have a better idea. 
+``` {r replace}
+
+classReplacements <- c("p" = "poisonous", "e" = "edible")
+mushroomDataSubset$CLASSIFICATION <- revalue(mushroomDataSubset$CLASSIFICATION, classReplacements)
+
+
+colorReplacements <- c("n"="brown", "g"= "gray", "e"= "red", "y"= "yellow", "w" = "white", "b"= "buff", "c" = "cinnamon", "r" = "green", "p" = "pink", "u" = "purple", "k" = "black", "h" = "chocolate", "o" = "orange")
+
+mushroomDataSubset <- sapply(mushroomDataSubset, function(x) revalue(x,colorReplacements))
+
+```
+
+Let's take one last look at the data:
+``` {r final}
+summary(mushroomDataSubset)
+```
